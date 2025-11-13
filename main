@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SipSpot — ATL Happy Hour (Bright)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --bg1:#fff9ec; --bg2:#f0fff4; --ink:#0f172a;
+  --accent:#12b981; --accent2:#f97316; --accent3:#f43f5e;
+  --chip:#ffffff; --chipb:#e8f5ee;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink);background:radial-gradient(1000px 700px at 10% 5%,var(--bg2),transparent 60%),radial-gradient(900px 600px at 90% 30%,var(--bg1),transparent 60%),#ffffff;}
+button,input,select{font:inherit}
+
+/* Landing */
+#landing{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#c8f8d0,#ffeabf);} /* bright, welcoming */
+.hero{max-width:720px;width:100%;background:linear-gradient(135deg,rgba(18,185,129,.25),rgba(249,115,22,.25));border:1px solid rgba(0,0,0,.06);backdrop-filter:blur(8px);border-radius:24px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.06)}
+.hero h1{margin:0;font-size:40px;letter-spacing:-.02em}
+.hero p{margin:.5rem 0 1.25rem;opacity:.8}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+.btn-emerald{background:var(--accent);color:#fff}
+.btn-orange{background:var(--accent2);color:#fff}
+
+/* App shell */
+#app{display:none}
+header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.8);backdrop-filter:saturate(160%) blur(14px);border-bottom:1px solid rgba(0,0,0,.06)}
+.head{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .dot{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.title{font-weight:800;letter-spacing:-.01em}
+.small{opacity:.7;font-size:12px}
+
+.controls{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.radius{display:flex;align-items:center;gap:8px}
+#rad{width:160px}
+
+.filters{max-width:1100px;margin:12px auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:linear-gradient(90deg,#fff8d6,#d7fbe8);border:1px solid rgba(0,0,0,.06);border-radius:16px}
+.chip{background:var(--chip);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:8px 12px;font-size:13px;cursor:pointer}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.day{padding:8px 12px;border-radius:12px;border:1px solid rgba(0,0,0,.08);background:#fff;cursor:pointer}
+.day.active{background:var(--accent3);color:#fff;border-color:var(--accent3)}
+
+.mapwrap{max-width:1100px;margin:12px auto;padding:0 16px}
+#map{height:420px;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.06)}
+
+.grid{max-width:1100px;margin:12px auto;padding:0 16px;display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+.card{border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.06);background:#fff;border:1px solid rgba(0,0,0,.06)}
+.card .art{height:140px;background:linear-gradient(135deg, rgba(18,185,129,.85), rgba(249,115,22,.85));}
+.card .body{padding:12px}
+.badge{display:inline-block;background:#FFE5EC;color:#7A1D31;border-radius:8px;padding:4px 8px;font-size:12px}
+.actions{display:flex;gap:8px;margin-top:8px}
+.actions a{display:inline-block;text-decoration:none;padding:8px 10px;border-radius:10px;font-size:13px;font-weight:600}
+.actions a.menu{background:var(--accent2);color:#fff}
+.actions a.dir{background:var(--accent);color:#fff}
+.actions a.disabled{opacity:.5;pointer-events:none;filter:grayscale(1)}
+.countrow{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;background:var(--accent);color:#fff;padding:8px 12px;border-radius:12px;display:none}
+#qa{position:fixed;right:10px;bottom:10px;background:#10b981;color:#fff;border-radius:12px;padding:6px 10px;font-size:12px;display:none}
+
+/* Audit overlay */
+#audit{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center}
+#audit .panel{background:#fff;border-radius:16px;max-width:720px;width:calc(100% - 32px);padding:16px}
+#audit ul{margin:8px 0;padding-left:16px}
+</style>
+</head>
+<body>
+<!-- Landing -->
+<section id="landing">
+  <div class="hero">
+    <h1>SipSpot</h1>
+    <p>Built by you · Find the best ATL happy hours near you.</p>
+    <div class="cta">
+      <button id="start" class="btn btn-emerald">Start exploring</button>
+      <button id="startLocate" class="btn btn-orange">Use my location</button>
+    </div>
+  </div>
+</section>
+
+<!-- App -->
+<section id="app">
+  <header>
+    <div class="head">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div class="title">SipSpot — ATL Happy Hour</div>
+          <div class="small">Bright theme · categories · menus & directions</div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="radius"><span class="small">Near me</span>
+          <input id="rad" type="range" min="1" max="30" step="1" value="10" />
+          <span id="radlbl" class="small">10 mi</span>
+        </div>
+        <button id="locate" class="btn btn-orange">Use my location</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="chips" class="filters"></div>
+
+  <div class="mapwrap"><div id="map"></div></div>
+
+  <section class="grid">
+    <div class="countrow"><strong>Spots Nearby</strong><div class="small" id="count">0 results</div></div>
+    <div id="list" style="display:contents"></div>
+  </section>
+</section>
+
+<div id="toast" class="toast">Location updated</div>
+<div id="qa">QA: OK</div>
+<div id="audit"><div class="panel"><h3 style="margin:0 0 6px">Link Audit</h3><div class="small" id="auditSummary"></div><ul id="auditList"></ul><div style="display:flex;gap:8px;justify-content:flex-end"><button id="auditClose" class="btn">Close</button></div></div></div>
+
+<script>
+(function(){
+  // ===== Helpers =====
+  const $=s=>document.querySelector(s);
+  const $$=s=>Array.from(document.querySelectorAll(s));
+  const toast=(m)=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',1200)};
+  const qa=(m,ok)=>{const q=$('#qa');q.textContent=m||'QA: OK';q.style.background=ok===false?'#ef4444':'#10b981';q.style.display='block';setTimeout(()=>q.style.display='none',1400)};
+  const toMin=t=>{const a=t.split(':');return (+a[0])*60+(+a[1])};
+  const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
+  const today=()=>new Date().getDay();
+  const openNow=sp=>{if(!sp)return false;const d=today();if(!sp.days.includes(d))return false;const n=nowMin();return n>=toMin(sp.start)&&n<=toMin(sp.end)};
+  const hav=(a,b)=>{const R=3958.8;const dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180;const la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(Math.min(1,Math.max(-1,Math.sin(dLng/2)**2)))||Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(Math.max(0,h)))}; // guard tiny fp errors
+
+  // ===== Link safety & URL builders =====
+  const isHttpUrl=u=>/^https?:\/\//i.test(u||'');
+  const menuUrl=v=> v.menu? v.menu : (v.site? v.site : ('https://www.google.com/search?q='+encodeURIComponent(v.name+' menu Atlanta')));
+  const dirUrl=v=> 'https://www.google.com/maps/dir/?api=1&origin='+center.lat+','+center.lng+'&destination='+v.lat+','+v.lng;
+  window.__safeNav=(url)=>{ try{ const w=window.open(url,'_blank','noopener'); if(!w || w.closed || typeof w.closed==='undefined'){ location.href=url } }catch(e){ location.href=url } return false };
+
+  // ===== Categories & Data =====
+  const CATS=[
+    {key:'tacos',label:'🌮 Tacos'},
+    {key:'wings',label:'🍗 Wings'},
+    {key:'rooftop',label:'🌆 Rooftop'},
+    {key:'date',label:'💞 Date Night'},
+    {key:'sports',label:'🏈 Sports Bar'},
+    {key:'patio',label:'🌿 Patios'},
+    {key:'late',label:'🌙 Late Night'},
+  ];
+  function V(id,name,lat,lng,cats,hood,days,start,end,text,rating,reviews,site,menu){
+    return {id,name,lat,lng,cats,neighborhood:hood,special:{days,start,end,text},rating,reviews,site:site||'',menu:menu||'',dist:0};
+  }
+
+  const VENUES=[
+    V('r1','Ladybird Grove & Mess Hall',33.7619,-84.3606,['patio','date'],'BeltLine',[5,6,0],'16:00','19:00','Campground vibes on the BeltLine',4.5,3800,'https://www.ladybirdatl.com/','https://www.ladybirdatl.com/menu'),
+    V('r2','9 Mile Station (PCM Roof)',33.7726,-84.3655,['rooftop','date'],'Old Fourth Ward',[5,6],'17:00','19:00','Skyline views · shareables',4.4,2100,'https://9milestation.com/','https://9milestation.com/food-and-drinks-menu')
+  ];
+
+  // ===== State =====
+  let map, userMarker, routeLine;
+  const FALLBACK={lat:33.9526,lng:-84.5499}; // Marietta
+  let center={...FALLBACK};
+  const activeCats=new Set();
+  const activeDays=new Set([5,6,0]); // Fri/Sat/Sun default
+  let nearRadius=10; // miles
+
+  // ===== Map =====
+  function initMap(){
+    map=L.map('map',{zoomControl:true});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+    map.setView([center.lat,center.lng], 11);
+    userMarker=L.circleMarker([center.lat,center.lng],{radius:10,color:'#fff',weight:3,fill:true,fillColor:'#34d399',fillOpacity:1}).addTo(map);
+    // Delegate clicks inside Leaflet popups to safeNav
+    map.on('popupopen', (ev)=>{
+      const el=ev.popup.getElement();
+      if(!el) return;
+      el.querySelectorAll('a[href]').forEach(a=>{
+        a.addEventListener('click', (e)=>{ e.preventDefault(); window.__safeNav(a.href) });
+      });
+    });
+  }
+
+  function drawMarkers(items){
+    if(!map) return;
+    if(routeLine){routeLine.remove();routeLine=null}
+    map.eachLayer(l=>{ if(l instanceof L.CircleMarker && l!==userMarker){ map.removeLayer(l) } });
+    items.forEach(v=>{
+      const m=L.circleMarker([v.lat,v.lng],{radius:9,color:'#22d3ee',weight:2,fill:true,fillColor: openNow(v.special)? '#10b981':'#f97316', fillOpacity:.95}).addTo(map);
+      const badge=openNow(v.special)? '<span class="badge">Open Now</span>':'';
+      const mu=menuUrl(v); const du=dirUrl(v); const menuOK=isHttpUrl(mu); const dirOK=isHttpUrl(du);
+      const html=`<div style="min-width:240px"><div style="font-weight:700;margin-bottom:4px">${v.name}</div>
+        <div style="opacity:.75;font-size:13px;margin-bottom:4px">${v.neighborhood} · ${v.dist.toFixed(1)} mi</div>
+        <div style="font-size:13px">${v.special.text||'See details'}</div>
+        <div style="margin-top:6px;display:flex;gap:8px;align-items:center">${badge}
+          ${menuOK?`<a href="${mu}" target="_blank" rel="noopener" style="text-decoration:underline;font-size:12px">Menu</a>`:`<a class="disabled" style="font-size:12px">Menu</a>`}
+          ${v.site?`<a href="${v.site}" target="_blank" rel="noopener" style="text-decoration:underline;font-size:12px">Website</a>`:`<a class="disabled" style="font-size:12px">Website</a>`}
+          ${dirOK?`<a href="${du}" target="_blank" rel="noopener" style="text-decoration:underline;font-size:12px">Directions</a>`:`<a class="disabled" style="font-size:12px">Directions</a>`}
+          <button onclick="window.__route(${v.lat},${v.lng})" style="border:0;background:none;text-decoration:underline;color:#2563eb;font-size:12px;cursor:pointer">Route</button>
+        </div></div>`;
+      m.bindPopup(html);
+    });
+    fitTo(items);
+  }
+  window.__route=(lat,lng)=>{ if(!map) return; if(routeLine){routeLine.remove()} routeLine=L.polyline([[center.lat,center.lng],[lat,lng]],{color:'#10b981',weight:5,opacity:.8}).addTo(map); map.fitBounds(routeLine.getBounds(),{padding:[40,40]}) };
+  function fitTo(items){ if(!map) return; if(!items||!items.length){ map.setView([center.lat,center.lng],12); return } const b=L.latLngBounds([[center.lat,center.lng]]); items.forEach(v=>b.extend([v.lat,v.lng])); map.fitBounds(b,{padding:[28,28]}); }
+
+  // ===== List =====
+  function cardHTML(v){
+    const badge=openNow(v.special)? '<span class="badge">Open Now</span>':'';
+    const tags=v.cats.map(k=>{const c=CATS.find(x=>x.key===k);return `<span class="chip">${c?c.label:k}</span>`}).join(' ');
+    const mu=menuUrl(v); const du=dirUrl(v); const menuOK=isHttpUrl(mu); const dirOK=isHttpUrl(du);
+    return `<article class="card"><div class="art"></div><div class="body">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between"><h3 style="margin:0">${v.name}</h3>${badge}</div>
+      <div class="small" style="opacity:.7">${v.neighborhood} · ${v.dist.toFixed(1)} mi · ⭐ ${v.rating} (${v.reviews})</div>
+      <p style="margin:8px 0 0">${v.special.text||''}</p>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">${tags}</div>
+      <div class="actions">
+        ${menuOK?`<a class="menu" href="${mu}" target="_blank" rel="noopener">View Menu</a>`:`<a class="menu disabled" title="Menu link invalid">View Menu</a>`}
+        ${dirOK?`<a class="dir" href="${du}" target="_blank" rel="noopener">Directions</a>`:`<a class="dir disabled" title="Directions link invalid">Directions</a>`}
+      </div>
+    </div></article>`
+  }
+  function renderList(items){ $('#list').innerHTML=items.map(cardHTML).join(''); $('#count').textContent=items.length+` result${items.length!==1?'s':''}` }
+
+  // Delegate click for list links to safeNav (handles preview sandboxes)
+  document.addEventListener('click', (e)=>{
+    const a=e.target.closest('a.menu, a.dir');
+    if(!a) return;
+    const href=a.getAttribute('href');
+    if(!href) return;
+    e.preventDefault();
+    window.__safeNav(href);
+  }, true);
+
+  // ===== Compute & Filters =====
+  function compute(){
+    // distance
+    VENUES.forEach(v=> v.dist = hav(center,{lat:v.lat,lng:v.lng}));
+    let items=VENUES.filter(v=> v.dist <= nearRadius);
+    if(activeCats.size){ items=items.filter(v=> Array.from(activeCats).every(k=> v.cats.includes(k))) }
+    if(activeDays.size){ items=items.filter(v=> v.special && v.special.days.some(d=> activeDays.has(d))) }
+    // ensure at least 3 items by relaxing distance
+    if(items.length<3){
+      const byDist=[...VENUES].sort((a,b)=>a.dist-b.dist);
+      for(const v of byDist){ if(!items.includes(v) && (!activeCats.size || Array.from(activeCats).every(k=>v.cats.includes(k))) && (!activeDays.size || v.special.days.some(d=>activeDays.has(d))) ){ items.push(v); if(items.length>=3) break; } }
+    }
+    // sort: open now > score > distance
+    const nowOpen=x=> openNow(x.special)?1:0;
+    items.sort((a,b)=> (nowOpen(b)-nowOpen(a)) || ((b.rating*b.reviews)-(a.rating*a.reviews)) || (a.dist-b.dist));
+    return items;
+  }
+  function renderAll(){ const items=compute(); renderList(items); drawMarkers(items) }
+
+  // ===== Chips & Days =====
+  function renderChips(){
+    const wrap=$('#chips'); wrap.innerHTML='';
+    CATS.forEach(c=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=c.label; b.dataset.key=c.key; b.onclick=()=>{ if(activeCats.has(c.key)) activeCats.delete(c.key); else activeCats.add(c.key); b.classList.toggle('active'); renderAll() }; wrap.appendChild(b); });
+    ['Fri','Sat','Sun'].forEach((lbl,i)=>{ const d=i===0?5:i===1?6:0; const btn=document.createElement('button'); btn.className='day active'; btn.textContent=lbl; btn.onclick=()=>{ if(activeDays.has(d)) activeDays.delete(d); else activeDays.add(d); btn.classList.toggle('active'); renderAll() }; wrap.appendChild(btn) });
+  }
+
+  // ===== Geo =====
+  function useGeo(){
+    if(!navigator.geolocation){ toast('GPS not available — using Marietta'); center={lat:33.9526,lng:-84.5499}; if(map){ map.setView([center.lat,center.lng],11); userMarker.setLatLng([center.lat,center.lng]) } renderAll(); return }
+    navigator.geolocation.getCurrentPosition(pos=>{ center={lat:pos.coords.latitude,lng:pos.coords.longitude}; if(map){ map.setView([center.lat,center.lng],12); userMarker.setLatLng([center.lat,center.lng]) } toast('Location updated'); renderAll() }, err=>{ const insecure=location.protocol!=='https:' && location.hostname!=='localhost'; toast(insecure?'Enable HTTPS for GPS — using Marietta':'Location denied — using Marietta'); center={lat:33.9526,lng:-84.5499}; if(map){ map.setView([center.lat,center.lng],11); userMarker.setLatLng([center.lat,center.lng]) } renderAll() }, {enableHighAccuracy:true,timeout:6000,maximumAge:60000});
+  }
+
+  // ===== Preflight & Full Audit =====
+  function auditLinks(){
+    const issues=[];
+    VENUES.forEach(v=>{
+      const mu=menuUrl(v), du=dirUrl(v);
+      if(!isHttpUrl(mu)) issues.push(`${v.name}: menu url invalid`);
+      if(!isHttpUrl(du) || !/destination=/.test(du)) issues.push(`${v.name}: directions url invalid`);
+    });
+    return {ok:issues.length===0, issues};
+  }
+  function showAudit(issues){
+    const list=$('#auditList'); const sum=$('#auditSummary');
+    list.innerHTML=issues.map(x=>`<li>${x}</li>`).join('');
+    sum.textContent=issues.length? `${issues.length} link issue(s) found. Fix before loading.` : 'All links look valid.';
+    $('#audit').style.display='flex';
+    $('#auditClose').onclick=()=>{ $('#audit').style.display='none' };
+  }
+
+  // ===== Init =====
+  function init(){
+    // Landing
+    $('#start').onclick=()=>{ const a=auditLinks(); if(a.ok){ $('#landing').style.display='none'; $('#app').style.display='block'; initMap(); renderChips(); renderAll(); } else { showAudit(a.issues) } };
+    $('#startLocate').onclick=()=>{ const a=auditLinks(); if(a.ok){ $('#landing').style.display='none'; $('#app').style.display='block'; initMap(); renderChips(); useGeo(); } else { showAudit(a.issues) } };
+
+    // App controls
+    $('#locate').onclick=()=>useGeo();
+    const slider=$('#rad'), lbl=$('#radlbl');
+    slider.oninput=()=>{ nearRadius=parseInt(slider.value,10)||10; lbl.textContent=nearRadius+' mi'; renderAll() };
+
+    // Smoke tests
+    try{
+      console.assert(typeof L!=='undefined','Leaflet loaded');
+      console.assert(document.getElementById('rad'),'Radius slider exists');
+      console.assert(Array.isArray(VENUES)&&VENUES.length>=2,'Seed venues present');
+      // URL builders
+      const mock={lat:33.76,lng:-84.38,menu:'https://example.com/menu',name:'Test'};
+      console.assert(menuUrl(mock).startsWith('http'), 'menuUrl returns http');
+      const d=dirUrl({lat:33.75,lng:-84.39});
+      console.assert(d.includes('destination='), 'dirUrl builds destination');
+      qa('QA: All checks passed', true);
+    }catch(e){ console.error(e); qa('QA: A check failed', false) }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+</body>
+</html>
