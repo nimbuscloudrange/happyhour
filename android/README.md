@@ -13,6 +13,7 @@ An Android application that uses HTML5 as its complete UI, with full support for
 - **Web Data Loading**: Fetch and display data from web APIs
 - **Input Handling**: Receive and process user input from HTML5 forms
 - **Modern Design**: Beautiful gradient UI with glassmorphism effects
+- **AdMob Integration**: Google AdMob banner ads support for monetization
 
 ## Project Structure
 
@@ -83,7 +84,7 @@ The HTML5 interface uses the Fetch API to load data from web URLs. The app has i
 
 ## Permissions
 
-- `INTERNET`: Required for loading web data
+- `INTERNET`: Required for loading web data and AdMob ads
 - `ACCESS_NETWORK_STATE`: To check network availability
 
 ## Requirements
@@ -115,9 +116,61 @@ Then call it from HTML5:
 Android.myCustomMethod("data");
 ```
 
+## AdMob Configuration
+
+This app includes Google AdMob integration for displaying banner ads. The AdMob SDK is already integrated and configured.
+
+### Current Setup
+
+- **AdMob SDK Version**: 22.6.0 (Google Play Services Ads)
+- **Ad Format**: Banner ads displayed at the bottom of the screen
+- **Ad Lifecycle**: Properly handled (pause/resume/destroy) in MainActivity
+
+### Configuration Files
+
+1. **AndroidManifest.xml**: Contains the AdMob App ID
+   - Location: `app/src/main/AndroidManifest.xml`
+   - Current value: Test App ID (`ca-app-pub-3940256099942544~3347511713`)
+
+2. **Layout File**: Contains the AdView component
+   - Location: `app/src/main/res/layout/activity_main.xml`
+   - Current ad unit ID: Test Banner ID (`ca-app-pub-3940256099942544/6300978111`)
+
+3. **MainActivity.java**: Initializes AdMob and loads ads
+   - AdMob is initialized in `onCreate()`
+   - Banner ads are loaded automatically
+   - Ad lifecycle is managed in `onPause()`, `onResume()`, and `onDestroy()`
+
+### Setting Up Your AdMob Account
+
+Before publishing, you need to replace the test IDs with your real AdMob IDs:
+
+1. **Create an AdMob Account**:
+   - Go to [Google AdMob](https://admob.google.com/)
+   - Sign in with your Google account
+   - Create a new app or select an existing one
+
+2. **Get Your App ID**:
+   - In AdMob console, go to Apps → Your App
+   - Copy your App ID (format: `ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX`)
+
+3. **Create an Ad Unit**:
+   - Go to Ad units → Add ad unit
+   - Select "Banner" format
+   - Copy your Ad Unit ID (format: `ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX`)
+
+4. **Update Configuration**:
+   - Replace the App ID in `AndroidManifest.xml` (line 24)
+   - Replace the Ad Unit ID in `activity_main.xml` (line 20)
+
+### Testing
+
+The app currently uses Google's test ad IDs, which will show test ads. These are safe to use during development. Make sure to replace them with your real IDs before publishing to the Play Store.
+
 ## Notes
 
 - The app uses `usesCleartextTraffic="true"` to allow HTTP connections (for development). For production, consider using HTTPS only.
 - JavaScript is enabled in the WebView for full HTML5 functionality.
 - The WebView handles back button navigation through its history.
+- AdMob ads require an active internet connection to load.
 

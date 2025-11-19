@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Happy Hour</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC08tp4uFJ3KNFdkJxZdiQxCUffNu5mgT4&libraries=places"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .logo-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 28px;
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .zoom-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 12px;
+            border-radius: 20px;
+        }
+
+        .zoom-slider {
+            width: 100px;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .zoom-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-location {
+            background: rgba(255,255,255,0.9);
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-location:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Categories */
+        .categories {
+            background: white;
+            padding: 15px 20px;
+            overflow-x: auto;
+            white-space: nowrap;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .categories::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-right: 10px;
+            background: #f0f0f0;
+            border: 2px solid transparent;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .category-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .category-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .category-btn.active:hover {
+            background: #5568d3;
+        }
+
+        /* Map */
+        .map-container {
+            width: 100%;
+            height: 300px;
+            background: #e0e0e0;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Spots Section */
+        .spots-section {
+            padding: 20px;
+        }
+
+        .spots-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .spots-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .results-count {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .spots-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px;
+            max-height: calc(100vh - 600px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Spot Card */
+        .spot-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .spot-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .spot-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            background: #e0e0e0;
+        }
+
+        .spot-content {
+            padding: 12px;
+        }
+
+        .spot-name {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #333;
+        }
+
+        .spot-location {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .spot-distance {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .spot-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+
+        .stars {
+            color: #ffc107;
+            font-size: 14px;
+        }
+
+        .rating-text {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .spot-description {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .spot-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .category-tag {
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .spot-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-menu {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-menu:hover {
+            background: #5568d3;
+        }
+
+        .btn-directions {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-directions:hover {
+            background: #e0e0e0;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 20px auto;
+            max-width: 600px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .modal-header {
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: rgba(0,0,0,0.8);
+        }
+
+        .modal-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 2px solid #f0f0f0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .modal-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: none;
+            border: none;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .modal-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .modal-section {
+            display: none;
+        }
+
+        .modal-section.active {
+            display: block;
+        }
+
+        /* Carousel */
+        .carousel {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            overflow: hidden;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .carousel-images {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s ease;
+        }
+
+        .carousel-image {
+            min-width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .carousel-dots {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .carousel-dot.active {
+            background: white;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        /* Rating */
+        .rating-section {
+            margin-bottom: 20px;
+        }
+
+        .rating-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .rating-input {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .star-btn {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #ddd;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+        }
+
+        .star-btn.active {
+            color: #ffc107;
+        }
+
+        /* Menu */
+        .menu-section {
+            margin-bottom: 20px;
+        }
+
+        .menu-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 5px;
+        }
+
+        .menu-item-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .menu-item-price {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .menu-item-description {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Hours */
+        .hours-section {
+            margin-bottom: 20px;
+        }
+
+        .hours-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .hours-item:last-child {
+            border-bottom: none;
+        }
+
+        .hours-day {
+            font-weight: 600;
+        }
+
+        .hours-time {
+            color: #666;
+        }
+
+        /* Contact */
+        .contact-section {
+            margin-bottom: 20px;
+        }
+
+        .contact-item {
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .contact-label {
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .contact-value {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .contact-value:hover {
+            text-decoration: underline;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .spots-section {
+                padding: 16px;
+            }
+            
+            .header-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <div class="logo-title">
+                <span class="logo">🍻</span>
+                <span class="app-title">Happy Hour</span>
+            </div>
+            <div class="header-controls">
+                <div class="zoom-control">
+                    <span style="font-size: 12px;">🔍</span>
+                    <input type="range" class="zoom-slider" id="zoomSlider" min="10" max="20" value="15" step="1">
+                </div>
+                <button class="btn-location" onclick="useMyLocation()">📍 Use my location</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="categories">
+        <button class="category-btn" data-category="Tacos" onclick="toggleCategory('Tacos')">Tacos</button>
+        <button class="category-btn" data-category="Wings" onclick="toggleCategory('Wings')">Wings</button>
+        <button class="category-btn" data-category="Rooftop" onclick="toggleCategory('Rooftop')">Rooftop</button>
+        <button class="category-btn" data-category="Date Night" onclick="toggleCategory('Date Night')">Date Night</button>
+        <button class="category-btn" data-category="Sports Bar" onclick="toggleCategory('Sports Bar')">Sports Bar</button>
+        <button class="category-btn" data-category="Patios" onclick="toggleCategory('Patios')">Patios</button>
+        <button class="category-btn" data-category="Late Night" onclick="toggleCategory('Late Night')">Late Night</button>
+    </div>
+
+    <!-- Map -->
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+
+    <!-- Spots Section -->
+    <div class="spots-section">
+        <div class="spots-header">
+            <h2 class="spots-title">Spots Nearby</h2>
+            <span class="results-count" id="resultsCount">0 results</span>
+        </div>
+        <div class="spots-grid" id="spotsGrid">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Loading spots...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="spotModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-tabs">
+                <button class="modal-tab active" onclick="switchTab('overview', this)">Overview</button>
+                <button class="modal-tab" onclick="switchTab('menu', this)">Menu</button>
+                <button class="modal-tab" onclick="switchTab('hours', this)">Hours</button>
+                <button class="modal-tab" onclick="switchTab('contact', this)">Contact</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be dynamically inserted -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // const API_BASE_URL = 'http://192.168.100.152:3000/api';  // local server
+        const API_BASE_URL = 'https://wcu.co/happyhour';  // production server
+        const DEFAULT_IMAGE_URL = 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400';
+
+        // Global variables
+        let map;
+        let userLocation = { lat: 40.7589, lng: -73.9851 }; // Default to NYC
+        let markers = [];
+        let currentSpots = [];
+        let selectedCategories = new Set();
+        let currentSpot = null;
+        let carouselInterval = null;
+        let currentRating = 0;
+
+        // Initialize
+        function init() {
+            initMap();
+            initZoomSlider();
+            loadSpots();
+        }
+
+        // Initialize Google Map
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: userLocation,
+                zoom: 15,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false
+            });
+
+            // Add user location marker
+            new google.maps.Marker({
+                position: userLocation,
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: '#4285F4',
+                    fillOpacity: 1,
+                    strokeColor: '#fff',
+                    strokeWeight: 3
+                },
+                title: 'Your Location'
+            });
+        }
+
+        // Initialize zoom slider
+        function initZoomSlider() {
+            const slider = document.getElementById('zoomSlider');
+            slider.addEventListener('input', (e) => {
+                map.setZoom(parseInt(e.target.value));
+            });
+        }
+
+        // Use my location
+        function useMyLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        map.setCenter(userLocation);
+                        loadSpots();
+                        if (typeof Android !== 'undefined') {
+                            Android.showToast('Location updated!');
+                        } else if (typeof iOS !== 'undefined') {
+                            iOS.showToast('Location updated!');
+                        }
+                    },
+                    (error) => {
+                        console.error('Geolocation error:', error);
+                        if (typeof Android !== 'undefined') {
+                            Android.showToast('Could not get location');
+                        } else if (typeof iOS !== 'undefined') {
+                            iOS.showToast('Could not get location');
+                        }
+                    }
+                );
+            } else {
+                if (typeof Android !== 'undefined') {
+                    Android.showToast('Geolocation not supported');
+                } else if (typeof iOS !== 'undefined') {
+                    iOS.showToast('Geolocation not supported');
+                }
+            }
+        }
+
+        // Toggle category filter
+        function toggleCategory(category) {
+            const btn = document.querySelector(`[data-category="${category}"]`);
+            if (selectedCategories.has(category)) {
+                selectedCategories.delete(category);
+                btn.classList.remove('active');
+            } else {
+                selectedCategories.add(category);
+                btn.classList.add('active');
+            }
+            filterAndDisplaySpots();
+        }
+
+        // Load spots from API
+        async function loadSpots() {
+            const grid = document.getElementById('spotsGrid');
+            grid.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading spots...</div></div>';
+
+            const url = `${API_BASE_URL}/locations?latitude=${userLocation.lat}&longitude=${userLocation.lng}`;
+            
+            // Try direct fetch first, fallback to native proxy if available
+            if ((typeof Android !== 'undefined' && Android.makeApiRequest) || (typeof iOS !== 'undefined' && iOS.makeApiRequest)) {
+                // Use native proxy method (bypasses CORS and WebView restrictions)
+                const callbackId = 'loadSpots_' + Date.now();
+                window.pendingCallbacks = window.pendingCallbacks || {};
+                window.pendingCallbacks[callbackId] = (data) => {
+                    try {
+                        currentSpots = data.locations || [];
+                        updateMapMarkers();
+                        filterAndDisplaySpots();
+                    } catch (error) {
+                        console.error('Error processing spots:', error);
+                        grid.innerHTML = `<div class="loading">Error processing spots: ${error.message}</div>`;
+                        if (typeof Android !== 'undefined') {
+                            Android.showToast('Error processing spots');
+                            Android.logError('Error processing spots: ' + error.message);
+                        } else if (typeof iOS !== 'undefined') {
+                            iOS.showToast('Error processing spots');
+                            iOS.logError('Error processing spots: ' + error.message);
+                        }
+                    }
+                };
+                window.pendingErrors = window.pendingErrors || {};
+                window.pendingErrors[callbackId] = (error) => {
+                    console.error('API Error:', error);
+                    grid.innerHTML = `<div class="loading">Error loading spots: ${error}<br><small>Check if API server is running at ${url}</small></div>`;
+                    if (typeof Android !== 'undefined') {
+                        Android.showToast('Error loading spots: ' + error);
+                        Android.logError('API Error: ' + error);
+                    } else if (typeof iOS !== 'undefined') {
+                        iOS.showToast('Error loading spots: ' + error);
+                        iOS.logError('API Error: ' + error);
+                    }
+                };
+                if (typeof Android !== 'undefined' && Android.makeApiRequest) {
+                    Android.makeApiRequest(url, callbackId);
+                } else if (typeof iOS !== 'undefined' && iOS.makeApiRequest) {
+                    iOS.makeApiRequest(url, callbackId);
+                }
+            } else {
+                // Try direct fetch
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'cors',
+                        headers: {
+                            'Accept': 'application/json',
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    currentSpots = data.locations || [];
+                    
+                    // Add markers to map
+                    updateMapMarkers();
+                    
+                    // Display spots
+                    filterAndDisplaySpots();
+                } catch (error) {
+                    console.error('Error loading spots:', error);
+                    const errorMsg = error.message || 'Network error';
+                    grid.innerHTML = `<div class="loading">Error loading spots: ${errorMsg}<br><small>URL: ${url}</small><br><small>If using native app, the app will try using native proxy method.</small></div>`;
+                    if (typeof Android !== 'undefined') {
+                        Android.showToast('Error loading spots: ' + errorMsg);
+                        Android.logError('Fetch Error: ' + errorMsg);
+                    } else if (typeof iOS !== 'undefined') {
+                        iOS.showToast('Error loading spots: ' + errorMsg);
+                        iOS.logError('Fetch Error: ' + errorMsg);
+                    }
+                }
+            }
+        }
+
+        // Handle API response from Android proxy
+        window.handleApiResponse = function(callbackId, data) {
+            if (window.pendingCallbacks && window.pendingCallbacks[callbackId]) {
+                window.pendingCallbacks[callbackId](data);
+                delete window.pendingCallbacks[callbackId];
+                delete window.pendingErrors[callbackId];
+            }
+        };
+
+        // Handle API error from Android proxy
+        window.handleApiError = function(callbackId, error) {
+            if (window.pendingErrors && window.pendingErrors[callbackId]) {
+                window.pendingErrors[callbackId](error);
+                delete window.pendingCallbacks[callbackId];
+                delete window.pendingErrors[callbackId];
+            }
+        };
+
+        // Update map markers
+        function updateMapMarkers() {
+            // Clear existing markers
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            // Add markers for filtered spots
+            const filtered = getFilteredSpots();
+            filtered.forEach((spot, index) => {
+                const marker = new google.maps.Marker({
+                    position: { lat: spot.latitude, lng: spot.longitude },
+                    map: map,
+                    title: spot.name,
+                    animation: google.maps.Animation.DROP
+                });
+
+                marker.addListener('click', () => {
+                    openModal(spot);
+                });
+
+                markers.push(marker);
+            });
+        }
+
+        // Get filtered spots
+        function getFilteredSpots() {
+            if (selectedCategories.size === 0) {
+                return currentSpots;
+            }
+            return currentSpots.filter(spot => 
+                spot.categories.some(cat => selectedCategories.has(cat))
+            );
+        }
+
+        // Filter and display spots
+        function filterAndDisplaySpots() {
+            const filtered = getFilteredSpots();
+            const grid = document.getElementById('spotsGrid');
+            const count = document.getElementById('resultsCount');
+
+            count.textContent = `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="loading">No spots found</div>';
+                return;
+            }
+
+            // Store filtered spots for modal access
+            window.filteredSpots = filtered;
+            grid.innerHTML = filtered.map((spot, index) => createSpotCard(spot, index)).join('');
+            updateMapMarkers();
+        }
+
+        // Open modal by index
+        function openModalByIndex(index) {
+            if (window.filteredSpots && window.filteredSpots[index]) {
+                openModal(window.filteredSpots[index]);
+            }
+        }
+
+        // View menu by index
+        function viewMenuByIndex(index) {
+            if (window.filteredSpots && window.filteredSpots[index]) {
+                const spot = window.filteredSpots[index];
+                if (spot.menuUrl) {
+                    window.open(spot.menuUrl, '_blank');
+                } else {
+                    openModal(spot);
+                    setTimeout(() => switchTab('menu'), 100);
+                }
+            }
+        }
+
+        // Get directions by index
+        function getDirectionsByIndex(index) {
+            if (window.filteredSpots && window.filteredSpots[index]) {
+                const spot = window.filteredSpots[index];
+                if (spot.directionsUrl) {
+                    window.open(spot.directionsUrl, '_blank');
+                } else {
+                    const directionsUrl = `https://maps.google.com/?q=${spot.latitude},${spot.longitude}`;
+                    window.open(directionsUrl, '_blank');
+                }
+            }
+        }
+
+        // Create spot card HTML
+        function createSpotCard(spot, index) {
+            const stars = '★'.repeat(Math.floor(spot.rating)) + '☆'.repeat(5 - Math.floor(spot.rating));
+            const categories = spot.categories.map(cat => 
+                `<span class="category-tag">${cat}</span>`
+            ).join('');
+
+            return `
+                <div class="spot-card" data-spot-index="${index}" onclick="openModalByIndex(${index})">
+                    <img src="${spot.image}" alt="${spot.name}" class="spot-image" onerror="this.src='${DEFAULT_IMAGE_URL}'">
+                    <div class="spot-content">
+                        <div class="spot-name">${spot.name}</div>
+                        <div class="spot-location">${spot.address || 'Location'}</div>
+                        <div class="spot-distance">${spot.distance.toFixed(1)} mi away</div>
+                        <div class="spot-rating">
+                            <span class="stars">${stars}</span>
+                            <span class="rating-text">${spot.rating} (${spot.reviews} reviews)</span>
+                        </div>
+                        <div class="spot-description">${spot.description}</div>
+                        <div class="spot-categories">${categories}</div>
+                        <div class="spot-actions">
+                            <button class="btn-action btn-menu" onclick="event.stopPropagation(); viewMenuByIndex(${index})">View Menu</button>
+                            <button class="btn-action btn-directions" onclick="event.stopPropagation(); getDirectionsByIndex(${index})">Directions</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Open modal
+        function openModal(spot) {
+            currentSpot = spot;
+            const modal = document.getElementById('spotModal');
+            const body = document.getElementById('modalBody');
+            
+            // Create images array (use carouselImages if available, otherwise fallback to image/images)
+            let images = [];
+            if (spot.carouselImages && spot.carouselImages.length > 0) {
+                images = spot.carouselImages;
+            } else if (spot.images && spot.images.length > 0) {
+                images = [spot.image, ...spot.images];
+            } else {
+                // Fallback to main image (duplicated for carousel demo if needed)
+                images = [spot.image];
+            }
+
+            body.innerHTML = `
+                <div class="modal-section active" id="overview">
+                    <div class="carousel">
+                        <div class="carousel-images" id="carouselImages">
+                            ${images.map(img => `<img src="${img}" class="carousel-image" onerror="this.src='${DEFAULT_IMAGE_URL}'">`).join('')}
+                        </div>
+                        <div class="carousel-dots" id="carouselDots"></div>
+                    </div>
+                    <h2 style="margin-bottom: 10px;">${spot.name}</h2>
+                    <div style="margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                            <span style="color: #ffc107; font-size: 20px;">${'★'.repeat(Math.floor(spot.rating))}${'☆'.repeat(5 - Math.floor(spot.rating))}</span>
+                            <span style="color: #666;">${spot.rating} (${spot.reviews} reviews)</span>
+                        </div>
+                        <div style="color: #666; margin-bottom: 5px;">${spot.address || 'Location'}</div>
+                        <div style="color: #667eea; font-weight: 600; margin-bottom: 10px;">${spot.distance.toFixed(1)} mi away</div>
+                        <p style="color: #666; line-height: 1.6; margin-bottom: 15px;">${spot.description}</p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${spot.categories.map(cat => `<span class="category-tag">${cat}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="rating-section">
+                        <div class="rating-title">Rate this spot</div>
+                        <div class="rating-input" id="ratingInput"></div>
+                    </div>
+                </div>
+                <div class="modal-section" id="menu">
+                    <div class="menu-section">
+                        <h3 style="margin-bottom: 15px;">Menu</h3>
+                        ${spot.menu ? spot.menu.map(item => `
+                            <div class="menu-item">
+                                <div class="menu-item-header">
+                                    <div class="menu-item-name">${item.name}</div>
+                                    <div class="menu-item-price">${item.price}</div>
+                                </div>
+                                <div class="menu-item-description">${item.description}</div>
+                            </div>
+                        `).join('') : '<p>No menu available</p>'}
+                    </div>
+                </div>
+                <div class="modal-section" id="hours">
+                    <div class="hours-section">
+                        <h3 style="margin-bottom: 15px;">Hours of Operation</h3>
+                        ${spot.hours ? Object.entries(spot.hours).map(([day, time]) => `
+                            <div class="hours-item">
+                                <span class="hours-day">${day.charAt(0).toUpperCase() + day.slice(1)}</span>
+                                <span class="hours-time">${time}</span>
+                            </div>
+                        `).join('') : '<p>Hours not available</p>'}
+                    </div>
+                </div>
+                <div class="modal-section" id="contact">
+                    <div class="contact-section">
+                        <h3 style="margin-bottom: 15px;">Contact Information</h3>
+                        ${spot.phone ? `<div class="contact-item"><span class="contact-label">Phone:</span><a href="tel:${spot.phone}" class="contact-value">${spot.phone}</a></div>` : ''}
+                        ${spot.email ? `<div class="contact-item"><span class="contact-label">Email:</span><a href="mailto:${spot.email}" class="contact-value">${spot.email}</a></div>` : ''}
+                        ${spot.website ? `<div class="contact-item"><span class="contact-label">Website:</span><a href="${spot.website}" target="_blank" class="contact-value">Visit Website</a></div>` : ''}
+                        ${spot.address ? `<div class="contact-item"><span class="contact-label">Address:</span><span class="contact-value">${spot.address}</span></div>` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Initialize carousel
+            initCarousel(images.length);
+            
+            // Initialize rating
+            initRating();
+
+            modal.classList.add('active');
+            
+            // Auto-scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        // Initialize carousel
+        function initCarousel(imageCount) {
+            if (imageCount <= 1) return;
+
+            const dotsContainer = document.getElementById('carouselDots');
+            dotsContainer.innerHTML = '';
+            
+            for (let i = 0; i < imageCount; i++) {
+                const dot = document.createElement('button');
+                dot.className = `carousel-dot ${i === 0 ? 'active' : ''}`;
+                dot.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(dot);
+            }
+
+            let currentSlide = 0;
+            const images = document.getElementById('carouselImages');
+            
+            function nextSlide() {
+                currentSlide = (currentSlide + 1) % imageCount;
+                images.style.transform = `translateX(-${currentSlide * 100}%)`;
+                updateCarouselDots(currentSlide);
+            }
+
+            // Auto-slide every 3 seconds
+            if (carouselInterval) clearInterval(carouselInterval);
+            carouselInterval = setInterval(nextSlide, 3000);
+        }
+
+        // Go to specific slide
+        function goToSlide(index) {
+            const images = document.getElementById('carouselImages');
+            images.style.transform = `translateX(-${index * 100}%)`;
+            updateCarouselDots(index);
+            
+            // Reset auto-slide timer
+            if (carouselInterval) clearInterval(carouselInterval);
+            const imageCount = document.querySelectorAll('.carousel-image').length;
+            let currentSlide = index;
+            carouselInterval = setInterval(() => {
+                currentSlide = (currentSlide + 1) % imageCount;
+                images.style.transform = `translateX(-${currentSlide * 100}%)`;
+                updateCarouselDots(currentSlide);
+            }, 3000);
+        }
+
+        // Update carousel dots
+        function updateCarouselDots(activeIndex) {
+            const dots = document.querySelectorAll('.carousel-dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === activeIndex);
+            });
+        }
+
+        // Initialize rating
+        function initRating() {
+            const container = document.getElementById('ratingInput');
+            container.innerHTML = '';
+            
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement('button');
+                star.className = 'star-btn';
+                star.textContent = '★';
+                star.onclick = () => setRating(i);
+                container.appendChild(star);
+            }
+            
+            if (currentSpot.userRating) {
+                setRating(currentSpot.userRating);
+            }
+        }
+
+        // Set rating
+        function setRating(rating) {
+            currentRating = rating;
+            const stars = document.querySelectorAll('.star-btn');
+            stars.forEach((star, index) => {
+                star.classList.toggle('active', index < rating);
+            });
+            
+            // Save rating (could send to Android or API)
+            if (currentSpot) {
+                currentSpot.userRating = rating;
+            }
+            
+            if (typeof Android !== 'undefined') {
+                Android.receiveData(JSON.stringify({ action: 'rating', spotId: currentSpot.id, rating: rating }));
+            } else if (typeof iOS !== 'undefined') {
+                iOS.receiveData(JSON.stringify({ action: 'rating', spotId: currentSpot.id, rating: rating }));
+            }
+        }
+
+        // Switch tab
+        function switchTab(tabName, clickedElement) {
+            // Update tab buttons
+            document.querySelectorAll('.modal-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            } else {
+                // Find the tab button by text content
+                document.querySelectorAll('.modal-tab').forEach(tab => {
+                    if (tab.textContent.toLowerCase().includes(tabName.toLowerCase())) {
+                        tab.classList.add('active');
+                    }
+                });
+            }
+
+            // Update sections
+            document.querySelectorAll('.modal-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            const section = document.getElementById(tabName);
+            if (section) {
+                section.classList.add('active');
+                // Auto-scroll to section
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('spotModal').classList.remove('active');
+            if (carouselInterval) {
+                clearInterval(carouselInterval);
+                carouselInterval = null;
+            }
+        }
+
+        // View menu
+        function viewMenu(url) {
+            if (url && url !== 'undefined') {
+                window.open(url, '_blank');
+            } else if (currentSpot) {
+                switchTab('menu');
+                openModal(currentSpot);
+            }
+        }
+
+        // Get directions
+        function getDirections(url) {
+            if (url && url !== 'undefined') {
+                window.open(url, '_blank');
+            } else if (currentSpot) {
+                const directionsUrl = `https://maps.google.com/?q=${currentSpot.latitude},${currentSpot.longitude}`;
+                window.open(directionsUrl, '_blank');
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('spotModal').addEventListener('click', (e) => {
+            if (e.target.id === 'spotModal') {
+                closeModal();
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
